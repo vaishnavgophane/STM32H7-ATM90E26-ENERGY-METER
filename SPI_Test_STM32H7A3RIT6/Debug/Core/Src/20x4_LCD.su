@@ -1,0 +1,10 @@
+../Core/Src/20x4_LCD.c:60:6:Display_Live_Values	40	static
+../Core/Src/20x4_LCD.c:89:13:LCD_Enable	8	static
+../Core/Src/20x4_LCD.c:97:13:LCD_WriteNibble	16	static
+../Core/Src/20x4_LCD.c:107:13:LCD_SendCommand	16	static
+../Core/Src/20x4_LCD.c:118:13:LCD_SendData	16	static
+../Core/Src/20x4_LCD.c:127:6:LCD_Init	8	static
+../Core/Src/20x4_LCD.c:153:6:LCD_Clear	8	static
+../Core/Src/20x4_LCD.c:160:6:LCD_SetCursor	24	static
+../Core/Src/20x4_LCD.c:172:6:LCD_PrintChar	16	static
+../Core/Src/20x4_LCD.c:178:6:LCD_Print	16	static

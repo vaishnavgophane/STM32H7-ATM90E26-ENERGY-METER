@@ -1,0 +1,8 @@
+../Core/Src/LCD_8bit.c:34:13:LCD_Enable	1
+../Core/Src/LCD_8bit.c:42:13:LCD_Write	1
+../Core/Src/LCD_8bit.c:53:13:LCD_Send	1
+../Core/Src/LCD_8bit.c:64:6:LCD_Init	1
+../Core/Src/LCD_8bit.c:93:6:LCD_Clear	1
+../Core/Src/LCD_8bit.c:98:6:LCD_SetCursor	2
+../Core/Src/LCD_8bit.c:110:6:LCD_PrintChar	1
+../Core/Src/LCD_8bit.c:115:6:LCD_Print	2
