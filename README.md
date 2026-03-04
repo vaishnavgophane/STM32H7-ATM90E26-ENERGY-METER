@@ -30,43 +30,26 @@ The system continuously measures:
 
 ## Wiring Diagram 
 ```mermaid
-flowchart TB
+flowchart LR
 
-    %% Top Layer
-    GRID[AC Voltage & Current Sensors]
-    XTAL[Crystal Oscillator]
-    REF[Vref + Reset]
+    Sensors["Voltage & Current Sensors"]
+    ATM["ATM90E26 Energy Meter IC"]
+    MCU["STM32H7 MCU"]
+    LCD["20x4 LCD"]
+    KEYS["User Buttons"]
+    XTAL["Crystal Oscillator"]
+    REF["Reference & Reset"]
+    PULSE["Energy Pulse Outputs"]
 
-    %% Middle Core
-    ATM[ATM90E26 Energy Meter IC]
+    Sensors --> ATM
+    XTAL --> ATM
+    REF --> ATM
 
-    %% MCU Layer
-    MCU[STM32H7 Microcontroller]
+    ATM <--> MCU
 
-    %% Peripherals
-    LCD[20x4 LCD Display]
-    KEYS[4-Button Keypad]
-    PULSE[Energy Pulse / Interrupt Lines]
-
-    %% Analog Inputs
-    GRID -->|VP / VN| ATM
-    GRID -->|I1P / I1N| ATM
-    GRID -->|I2P / I2N| ATM
-
-    %% Clock and Reference
-    XTAL -->|OSCI / OSCO| ATM
-    REF -->|Vref / RESET| ATM
-
-    %% SPI Communication
-    MCU <-->|SPI (MOSI, MISO, SCLK, CS)| ATM
-
-    %% Status / Pulse Outputs
-    ATM -->|CF1, CF2, IRQ, ZX, WarnOut| PULSE
-    PULSE --> MCU
-
-    %% UI
-    MCU -->|RS, EN, D4–D7| LCD
-    KEYS -->|UP, DOWN, ENTER, ESC| MCU
+    ATM --> PULSE
+    MCU --> LCD
+    KEYS --> MCU
 ```
 ## Core Components
 
