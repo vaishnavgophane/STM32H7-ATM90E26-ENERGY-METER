@@ -32,13 +32,12 @@ The system continuously measures:
 ```mermaid
 flowchart LR
 
-    Sensors["Voltage & Current Sensors"]
+    Sensors["Voltage Input & CT"]
     ATM["ATM90E26 Energy Meter IC"]
     MCU["STM32H7 MCU"]
     LCD["20x4 LCD"]
-    KEYS["User Buttons"]
-    XTAL["Crystal Oscillator"]
-    REF["Reference & Reset"]
+    KEYS["Keypad"]
+    XTAL["Crystal Oscillator(8.192)"]
     PULSE["Energy Pulse Outputs"]
 
     Sensors --> ATM
