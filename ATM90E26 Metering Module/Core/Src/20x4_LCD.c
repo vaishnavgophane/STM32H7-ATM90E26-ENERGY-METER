@@ -31,6 +31,10 @@ extern SystemState_t currentState;
 extern int cursorLine; // 0 to 3 for our 4 menu items
 extern char *menuItems[];
 
+extern uint8_t x;
+uint8_t base;
+static void LCD_WriteNibble(uint8_t nibble);
+static void LCD_Enable(void);
 /* Pin Definitions */
 
 #define D7_Pin GPIO_PIN_6
@@ -56,6 +60,57 @@ extern char *menuItems[];
 #define UP_GPIO_Port GPIOD
 
 /* Internal Functions */
+uint8_t Keypad_Read(void)
+{
+	base = 0x0F;
+    if (!HAL_GPIO_ReadPin(UP_GPIO_Port, UP_Pin)){
+    	HAL_Delay(20);
+    	if(!HAL_GPIO_ReadPin(UP_GPIO_Port, UP_Pin)) {
+    		while(!HAL_GPIO_ReadPin(UP_GPIO_Port, UP_Pin));
+        return (base & ~(1 << 0)); // returns 0x0E
+    	}
+    }
+
+    if (!HAL_GPIO_ReadPin(DOWN_GPIO_Port, DOWN_Pin)){
+    	HAL_Delay(20);
+    	if(!HAL_GPIO_ReadPin(DOWN_GPIO_Port, DOWN_Pin)) {
+    		while(!HAL_GPIO_ReadPin(DOWN_GPIO_Port, DOWN_Pin));
+        return (base & ~(1 << 1)); // returns 0x0D
+    	}
+    }
+
+    if (!HAL_GPIO_ReadPin(ENTER_GPIO_Port, ENTER_Pin)){
+    	HAL_Delay(20);
+    	if(!HAL_GPIO_ReadPin(ENTER_GPIO_Port, ENTER_Pin)) {
+    		while(!HAL_GPIO_ReadPin(ENTER_GPIO_Port, ENTER_Pin));
+        return (base & ~(1 << 2)); // returns 0x0B
+    	}
+    }
+
+    if (!HAL_GPIO_ReadPin(ESC_GPIO_Port, ESC_Pin)){
+    	HAL_Delay(20);
+    	if(!HAL_GPIO_ReadPin(ESC_GPIO_Port, ESC_Pin)) {
+    		while(!HAL_GPIO_ReadPin(ESC_GPIO_Port, ESC_Pin));
+        return (base & ~(1 << 3)); // returns 0x07
+    	}
+    }
+
+    return 0x0F; // no key
+
+}
+// Helper to convert bitmask (1,2,4,8) to index (0,1,2,3)
+
+void Display_20x4_Menu(void) {
+    char buf[21];
+    for (int i = 0; i < 4; i++) {
+        LCD_SetCursor(i, 0);
+        // Print menu items with a consistent 2-space margin
+        snprintf(buf, sizeof(buf), "%-18s", menuItems[i]);
+        LCD_Print(buf);
+    }
+    // Final step: Move the blinking cursor back to the start of the active line
+    LCD_SetCursor(cursorLine, 2);
+}
 
 void Display_Live_Values(int selection) {
     char buf[21];
@@ -75,7 +130,7 @@ void Display_Live_Values(int selection) {
         case 2: // Power Angle & Apparent
             // Calculated Apparent Power (S = V*I)
             sprintf(buf, "S: %.2f VA", Apparent_Power); LCD_SetCursor(0,0); LCD_Print(buf);
-            sprintf(buf, "Angle: %.1d Degg", Phase_Angle);  LCD_SetCursor(1,0); LCD_Print(buf);
+            sprintf(buf, "Angle: %.1d Deg", Phase_Angle);  LCD_SetCursor(1,0); LCD_Print(buf);
             break;
 
         case 3: // Active/Reactive Power
@@ -104,7 +159,7 @@ static void LCD_WriteNibble(uint8_t nibble)
 }
 
 /* Send Command */
-static void LCD_SendCommand(uint8_t cmd)
+void LCD_SendCommand(uint8_t cmd)
 {
     HAL_GPIO_WritePin(RS_GPIO_Port, RS_Pin, GPIO_PIN_RESET);
 
@@ -115,7 +170,7 @@ static void LCD_SendCommand(uint8_t cmd)
 }
 
 /* Send Data */
-static void LCD_SendData(uint8_t data)
+void LCD_SendData(uint8_t data)
 {
     HAL_GPIO_WritePin(RS_GPIO_Port, RS_Pin, GPIO_PIN_SET);
 

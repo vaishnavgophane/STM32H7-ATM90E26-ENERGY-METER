@@ -32,7 +32,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+// Calculate how many items are in the menu automatically
+#define MENU_SIZE (sizeof(menuItems) / sizeof(menuItems[0]))
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -84,20 +85,20 @@ typedef enum {
     STATE_MENU,
     STATE_LIVE_DATA
 } SystemState_t;
-
+uint8_t x = 0;           // Bitmask (0000)
+uint8_t key = 0;		// Maseked Reciever
 SystemState_t currentState = STATE_WELCOME;
 int cursorLine = 0; // 0 to 3 for our 4 menu items
-char *menuItems[] = {
-    "1. RMS Data",
-    "2. PF & Frequency",
-    "3. Ang & Apparent",
-    "4. Act/React Power"
+const char *menuItems[] = {
+    "RMS Data",
+    "PF & Frequency",
+    "Ang & Apparent",
+    "Act/React Power"
 };
 
-uint16_t pins[] = {UP_Pin, DOWN_Pin, ENTER_Pin, ESC_Pin};
-GPIO_TypeDef* ports[] = {UP_GPIO_Port, DOWN_GPIO_Port, ENTER_GPIO_Port, ESC_GPIO_Port};
+uint8_t updateDisplay = 1; // Start with 1 to draw the first time
+static uint32_t lastUpdate = 0;
 
-uint16_t pressedPin;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,24 +108,11 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 void   ATM90E26_Init();
-uint16_t Read_Keypad_SinglePress(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint16_t Read_Keypad_SinglePress(void) {
-    for (int i = 0; i < 4; i++) {
-        if (HAL_GPIO_ReadPin(ports[i], pins[i]) == GPIO_PIN_RESET) {
-            HAL_Delay(40); // Debounce checking
-            if (HAL_GPIO_ReadPin(ports[i], pins[i]) == GPIO_PIN_RESET) {
-                // Waiting until release
-                while (HAL_GPIO_ReadPin(ports[i], pins[i]) == GPIO_PIN_RESET);
-                return pins[i]; // Return the specific pin that was pressed
-            }
-        }
-    }
-    return 0; // Else No button was pressed
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -171,10 +159,10 @@ int main(void)
   LCD_Print("Welcome,");
   LCD_SetCursor(1,2);
   LCD_Print("System Online!");
-  LCD_SetCursor(2, 7);
-  LCD_Print("~ Vaishnav");
+  LCD_SetCursor(2, 4);
+  LCD_Print("~ ShineArc Tech!");
   HAL_Delay(2000);
-
+  LCD_Clear();
   currentState = STATE_MENU;
 
   ATM90E26_Init();
@@ -183,6 +171,8 @@ int main(void)
 
   ATM90E26_Mesurement_Enable();
 
+  x = 0x00; // Start with the first bit set (Line 0)
+    updateDisplay = 1;
   // 1. Read registers
 
   /* USER CODE END 2 */
@@ -192,99 +182,61 @@ int main(void)
   while (1)
   {
 	  //HAL_Delay(1000);
-	  vRMS = ATM90_ReadReg(0x49)/ 100.0f;
-
-// 1. Vrms
-	  vRMS = (float)ATM90_ReadReg(0x49)/ 100.0f;// The concept on repeted reading is to tackel the value refresh error.(650,0,0,0,0.....)
-
-// 2. Irms
-	  iRMS = (float)ATM90_ReadReg(0x48) / 260.0f;
-// 3. Power Factor
-	  lPF = (float)ATM90_ReadReg(0x4D);
-	  //  Check the Sign Bit (Bit 15)
-	  if (lPF & 0x8000) {
-	  // If Bit 15 is 1, the value is negative (Leading/Capacitive)
-	  // Masking out the sign bit, convert to float, and make it negative
-	  signedPF = (float)(lPF & 0x7FFF) / -1000.0f;
-	  } else {
-	  // If Bit 15 is 0, the value is positive (Lagging/Inductive)
-	  signedPF = (float)lPF / 1000.0f;
-	  }
-	  //  Safety Check: PF cannot mathematically exceed 1.0
-	  if (signedPF > 1.0f) signedPF = 1.0f;
-
-	  if (signedPF < -1.0f) signedPF = -1.0f;
-
-// 4. Frequency
-	  Freq = (float)ATM90_ReadReg(0x4C)/100;
-
-// 5. Aparent Power (S) : Unit - Volts Ampear(VA)
-	  Apparent_Power = (float)ATM90_ReadReg(0x4F);
-
-// 6. Active Power (P) : Unit - Watt (W)
-	  Active_Power = (float)ATM90_ReadReg(0x4A) * 1.0f;
-
-
-// 7. Reactive Power (Q) : Unit - VAR
-	  Reactive_Power = (float)ATM90_ReadReg(0x4B);
-
-// 8. Phase angle
-	  Phase_Angle = (float)ATM90_ReadReg(0x4E)/100;
-
-	  System_Status = ATM90_ReadReg(0x01); // Represents '0' if no errors in system or Checksum's
-
-
-
+	  ATM90_Get_Values();
 	  /* ============= 20x4 LCD & Keypad Section Starts ============= */
 
-	  if (currentState == STATE_MENU) {
+	  if(currentState == STATE_MENU) {
 
-	  		  /* ====== 4 LINE MENU ====== */
+		          if (updateDisplay == 1) {
+		        	  LCD_SendCommand(0x0F);		// Command: Display ON, Cursor ON, Blink ON
+		              Display_20x4_Menu();
 
-	        for (int i = 0; i < 4; i++) {
-	            LCD_SetCursor(i, 0);
-	            if (i == cursorLine) LCD_Print("> ");
-	            else LCD_Print("  ");
-	            LCD_Print(menuItems[i]);
-	        }
+		              LCD_SetCursor(cursorLine, 0);
+		              updateDisplay = 0;
+		          }
+		          key = Keypad_Read();
 
-	        // Button Navigations
-	        if (HAL_GPIO_ReadPin(UP_GPIO_Port, UP_Pin) == GPIO_PIN_RESET) {
-	        	HAL_Delay(10); 		// Debounce Eleminate Delay
-	        	if (HAL_GPIO_ReadPin(UP_GPIO_Port, UP_Pin) == GPIO_PIN_RESET) {
-	            if (cursorLine > 0) cursorLine--;
-	            while(HAL_GPIO_ReadPin(UP_GPIO_Port, UP_Pin) == GPIO_PIN_RESET);// Waits until the user releases the button and prevents contineus press(run) operation
-	        	}
-	        }
-	        if (HAL_GPIO_ReadPin(DOWN_GPIO_Port, DOWN_Pin) == GPIO_PIN_RESET) {
-	        	HAL_Delay(10);
-	        	if (HAL_GPIO_ReadPin(DOWN_GPIO_Port, DOWN_Pin) == GPIO_PIN_RESET){
-	            if (cursorLine < 3) cursorLine++;
-	            while(HAL_GPIO_ReadPin(DOWN_GPIO_Port, DOWN_Pin) == GPIO_PIN_RESET);
-	        	}
-	        }
-	        if (HAL_GPIO_ReadPin(ENTER_GPIO_Port, ENTER_Pin) == GPIO_PIN_RESET) {
-	        	HAL_Delay(10);
-	        	if (HAL_GPIO_ReadPin(ENTER_GPIO_Port, ENTER_Pin) == GPIO_PIN_RESET) {
-	        	currentState = STATE_LIVE_DATA;
-	        	LCD_Clear();
-	        	while(HAL_GPIO_ReadPin(ENTER_GPIO_Port, ENTER_Pin) == GPIO_PIN_RESET);
-	        	}
-	        }
+		          switch(key)
+		          {
+		              case 0x0E:   // UP
+		            	  cursorLine = (cursorLine == 0) ? 3 : cursorLine - 1;
+		              	  updateDisplay = 1;
+		                  break;
+
+		              case 0x0D:   // DOWN
+		            	  cursorLine = (cursorLine + 1) % 4;
+		              	  updateDisplay = 1;
+		                  break;
+
+		              case 0x0B:   // ENTER
+		              	currentState = STATE_LIVE_DATA;
+		              	LCD_Clear();
+		                  break;
+
+		              case 0x07:   // ESC
+		                  currentState = STATE_MENU;
+		                  updateDisplay = 1;
+		                  LCD_Clear();
+		                  break;
+		          }
 	  }
-	    	else if (currentState == STATE_LIVE_DATA) {
+	  else if(currentState == STATE_LIVE_DATA) {
+		    key = Keypad_Read();
+
+		    if(key == 0x07)        // ESC pressed
+		    {
+		        currentState = STATE_MENU;
+		        updateDisplay = 1;
+		        LCD_Clear();
+		    }
 
 	        /* ======== 3. DISPLAY LIVE VARIABLES ======= */
-
-	        Display_Live_Values(cursorLine);
-
-	        // Press ESC to return to Menu
-	        if (HAL_GPIO_ReadPin(ESC_GPIO_Port, ESC_Pin) == GPIO_PIN_RESET) {
-	            currentState = STATE_MENU;
-	            LCD_Clear();
-
-	        }
-	    }
+	        	  LCD_SendCommand(0x0C); // Display ON, Cursor OFF
+		          if (HAL_GetTick() - lastUpdate > 500) {
+		              Display_Live_Values(cursorLine);
+		              lastUpdate = HAL_GetTick();
+		          }
+	    	}
 
     /* USER CODE END WHILE */
 

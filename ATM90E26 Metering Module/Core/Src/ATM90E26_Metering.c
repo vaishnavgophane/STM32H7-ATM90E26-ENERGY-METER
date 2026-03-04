@@ -21,11 +21,11 @@ extern uint16_t System_Status;
 extern float vRMS;
 extern float  iRMS;
 extern float Freq;
-extern float Aparant_Power;
+extern float Apparent_Power;
 extern uint16_t lPF;
 extern float Reactive_Power;
 extern float Active_Power;
-extern uint16_t  signedPF;
+extern float  signedPF;
 extern int16_t Phase_Angle;
 extern char line[32];
 
@@ -47,6 +47,48 @@ extern volatile char line1[30];
 extern uint16_t meteringBlock[11];
 extern uint16_t measurementBlock[10];
 
+
+void ATM90_Get_Values(void) {
+	  vRMS = ATM90_ReadReg(0x49)/ 100.0f;
+// 1. Vrms
+	  vRMS = (float)ATM90_ReadReg(0x49)/ 100.0f;// The concept on repeted reading is to tackel the value refresh error.(650,0,0,0,0.....)
+
+// 2. Irms
+	  iRMS = (float)ATM90_ReadReg(0x48) / 260.0f;
+// 3. Power Factor
+	  lPF = (float)ATM90_ReadReg(0x4D);
+	  //  Check the Sign Bit (Bit 15)
+	  if (lPF & 0x8000) {
+	  // If Bit 15 is 1, the value is negative (Leading/Capacitive)
+	  // Masking out the sign bit, convert to float, and make it negative.
+	  signedPF = (float)(lPF & 0x7FFF) / -1000.0f;
+	  } else {
+	  // If Bit 15 is 0, the value is positive (Lagging/Inductive)
+	  signedPF = (float)lPF / 1000.0f;
+	  }
+	  //  Safety Check: PF cannot mathematically exceed 1.0
+	  if (signedPF > 1.0f) signedPF = 1.0f;
+
+	  if (signedPF < -1.0f) signedPF = -1.0f;
+
+// 4. Frequency
+	  Freq = (float)ATM90_ReadReg(0x4C)/100;
+
+// 5. Aparent Power (S) : Unit - Volts Ampear(VA)
+	  Apparent_Power = (float)ATM90_ReadReg(0x4F);
+
+// 6. Active Power (P) : Unit - Watt (W)
+	  Active_Power = (float)ATM90_ReadReg(0x4A) * 1.0f;
+
+// 7. Reactive Power (Q) : Unit - VAR
+	  Reactive_Power = (float)ATM90_ReadReg(0x4B);
+
+// 8. Phase angle
+	  Phase_Angle = (float)ATM90_ReadReg(0x4E)/100;
+	  HAL_Delay(1);
+	  Phase_Angle = (float)ATM90_ReadReg(0x4E)/100;
+	  System_Status = ATM90_ReadReg(0x01); // Represents '0' if no errors in system or Checksum's
+}
 uint16_t CalculateChecksum(uint16_t *regs, int length) {
     uint8_t lowSum = 0;   // For the Addition (Modulo 256)
     uint8_t highXor = 0;  // For the XOR logic

@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := SPI_Test_STM32H7A3RIT6
+BUILD_ARTIFACT_NAME := ATM90E26 Metering Module
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-SPI_Test_STM32H7A3RIT6.elf \
+ATM90E26\ Metering\ Module.elf \
 
 MAP_FILES += \
-SPI_Test_STM32H7A3RIT6.map \
+ATM90E26\ Metering\ Module.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-SPI_Test_STM32H7A3RIT6.list \
+ATM90E26\ Metering\ Module.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: SPI_Test_STM32H7A3RIT6.elf secondary-outputs
+main-build: ATM90E26\ Metering\ Module.elf secondary-outputs
 
 # Tool invocations
-SPI_Test_STM32H7A3RIT6.elf SPI_Test_STM32H7A3RIT6.map: $(OBJS) $(USER_OBJS) C:\Users\Administrator\STM32CubeIDE\Vaishnav-STM32\SPI_Test_STM32H7A3RIT6\STM32H7A3RITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "SPI_Test_STM32H7A3RIT6.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\Administrator\STM32CubeIDE\Vaishnav-STM32\SPI_Test_STM32H7A3RIT6\STM32H7A3RITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SPI_Test_STM32H7A3RIT6.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
+ATM90E26\ Metering\ Module.elf ATM90E26\ Metering\ Module.map: $(OBJS) $(USER_OBJS) C:\Users\Administrator\STM32CubeIDE\Vaishnav-STM32\SPI_Test_STM32H7A3RIT6\STM32H7A3RITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "ATM90E26 Metering Module.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\Administrator\STM32CubeIDE\Vaishnav-STM32\SPI_Test_STM32H7A3RIT6\STM32H7A3RITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ATM90E26 Metering Module.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-SPI_Test_STM32H7A3RIT6.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "SPI_Test_STM32H7A3RIT6.list"
+ATM90E26\ Metering\ Module.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "ATM90E26 Metering Module.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) SPI_Test_STM32H7A3RIT6.elf SPI_Test_STM32H7A3RIT6.list SPI_Test_STM32H7A3RIT6.map default.size.stdout
+	-$(RM) ATM90E26\ Metering\ Module.elf ATM90E26\ Metering\ Module.list ATM90E26\ Metering\ Module.map ATM90E26\\ Metering\\ Module.elf default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
