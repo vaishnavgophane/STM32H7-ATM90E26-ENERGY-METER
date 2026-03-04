@@ -30,56 +30,43 @@ The system continuously measures:
 
 ## Wiring Diagram 
 ```mermaid
-flowchart LR
+flowchart TB
 
-    AC[AC Line Input] --> CT[Current Transformer]
-    AC --> PT[Voltage Divider / PT]
+    %% Top Layer
+    GRID[AC Voltage & Current Sensors]
+    XTAL[Crystal Oscillator]
+    REF[Vref + Reset]
 
-    CT --> ATM[ATM90E26 Energy Meter IC]
-    PT --> ATM
+    %% Middle Core
+    ATM[ATM90E26 Energy Meter IC]
 
-    ATM -- SPI (MOSI / MISO / SCLK / CS) --> MCU[STM32H7 MCU]
+    %% MCU Layer
+    MCU[STM32H7 Microcontroller]
 
-    MCU -- GPIO RS, EN, D4-D7 --> LCD[20x4 Character LCD]
+    %% Peripherals
+    LCD[20x4 LCD Display]
+    KEYS[4-Button Keypad]
+    PULSE[Energy Pulse / Interrupt Lines]
 
-    MCU -- GPIO Inputs --> KEYPAD[4 Button Keypad]
-    KEYPAD -->|UP| MCU
-    KEYPAD -->|DOWN| MCU
-    KEYPAD -->|ENTER| MCU
-    KEYPAD -->|ESC| MCU
+    %% Analog Inputs
+    GRID -->|VP / VN| ATM
+    GRID -->|I1P / I1N| ATM
+    GRID -->|I2P / I2N| ATM
 
-    MCU --> STATUS[System Status Monitoring]
+    %% Clock and Reference
+    XTAL -->|OSCI / OSCO| ATM
+    REF -->|Vref / RESET| ATM
 
-    subgraph Measurement Parameters
-        VRMS[Voltage RMS]
-        IRMS[Current RMS]
-        PF[Power Factor]
-        FREQ[Frequency]
-        AP[Active Power]
-        RP[Reactive Power]
-        SAP[Apparent Power]
-        ANGLE[Phase Angle]
-    end
+    %% SPI Communication
+    MCU <-->|SPI (MOSI, MISO, SCLK, CS)| ATM
 
-    ATM --> VRMS
-    ATM --> IRMS
-    ATM --> PF
-    ATM --> FREQ
-    ATM --> AP
-    ATM --> RP
-    ATM --> SAP
-    ATM --> ANGLE
+    %% Status / Pulse Outputs
+    ATM -->|CF1, CF2, IRQ, ZX, WarnOut| PULSE
+    PULSE --> MCU
 
-    VRMS --> MCU
-    IRMS --> MCU
-    PF --> MCU
-    FREQ --> MCU
-    AP --> MCU
-    RP --> MCU
-    SAP --> MCU
-    ANGLE --> MCU
-
-    MCU --> LCD
+    %% UI
+    MCU -->|RS, EN, D4–D7| LCD
+    KEYS -->|UP, DOWN, ENTER, ESC| MCU
 ```
 ## Core Components
 
