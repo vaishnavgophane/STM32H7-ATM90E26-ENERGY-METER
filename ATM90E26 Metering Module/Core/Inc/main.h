@@ -112,6 +112,7 @@ void Error_Handler(void);
 #define UP_Pin GPIO_PIN_2
 #define UP_GPIO_Port GPIOD
 
+/* USER CODE BEGIN Private defines */
 /* ====== Metering ======= */
 #define PLconstH 0x0015
 #define PLconstL 0xD174
@@ -121,10 +122,6 @@ void Error_Handler(void);
 
 #define IgainL 0x3F4C    // L Line Current rms Gain(0x32)
 #define IoffsetL 0x0000 // L Line Current Offset(0x35)
-
-/* USER CODE BEGIN Private defines */
-#define CS_LOW()   HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_RESET)
-#define CS_HIGH()  HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_SET)
 
 /* USER CODE END Private defines */
 
