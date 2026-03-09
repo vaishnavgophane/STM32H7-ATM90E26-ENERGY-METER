@@ -44,7 +44,6 @@ flowchart LR
     Voltage --> ATM
     Current --> ATM
     XTAL --> ATM
-    REF --> ATM
 
     ATM <--> MCU
 
