@@ -63,8 +63,7 @@ void ATM90_Get_Values(void) {
 	  vRMS = (float)ATM90_ReadReg(0x49) / 100;// The concept on repeted reading is to tackel the value refresh error.(650,0,0,0,0.....)
 
 // 2. Irms
-	  iRMS = (float)ATM90_ReadReg(0x48) / 100;// 204.0f;// 001.0f; // 207.0f;
-
+	  iRMS = (float)ATM90_ReadReg(0x48) / 100;
 // 3. Power Factor
 	  lPF = (float)ATM90_ReadReg(0x4D);
 	  rawPF = lPF;
@@ -128,7 +127,7 @@ uint16_t CalculateChecksum(uint16_t *regs, int length) {
     return ((uint16_t)highXor << 8) | lowSum;
 }
 uint16_t ATM90_ReadReg(uint8_t addr) {
-	uint8_t tx_buf[3] = { (addr | 0x80), 0x00, 0x00 }; // MSB = 1 for Read [cite: 73]
+	uint8_t tx_buf[3] = { (addr | 0x80), 0x00, 0x00 }; // MSB = 1 for Read 
     HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_RESET);
 
     // Blocking call: HAL handles the H7 SPI FIFO internally
@@ -179,10 +178,10 @@ void ATM90E26_Metering_Enable(void)
 	  /* Setting the pulse constant. Even for raw values, the chip needs a timebase to integrate power into energy. */
 	  WriteReg(0x21, PLconstH);	// PL_constH
 
-	  WriteReg(0x22, PLconstL);	// PL_constL [Default Value ]
+	  WriteReg(0x22, PLconstL);	// PL_constL 
 
 	  /* Sets the fundamental gain for the Line current channels. */
-	  WriteReg(0x23, Lgain);	//  L Line Calibration Gain [ Default Value ]
+	  WriteReg(0x23, Lgain);	//  L Line Calibration Gain 
 
 	  /* Sets phase compensation. For raw readings, keeping this at zero ensures no phase shifting is applied. */
 	  WriteReg(0x24, 0x0000);	//  N Line Gain Angle [ Default Value ]
