@@ -119,7 +119,7 @@ void Error_Handler(void);
 
 /* ====== Mesurement ======= */
 
-#define IgainL 0x3DBC 	//3F4C    // L Line Current rms Gain(0x32)
+#define IgainL 0x3F4C    // L Line Current rms Gain(0x32)
 #define IoffsetL 0x0000 // L Line Current Offset(0x35)
 
 /* USER CODE BEGIN Private defines */
