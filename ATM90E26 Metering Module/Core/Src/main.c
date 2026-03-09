@@ -52,6 +52,7 @@ SPI_HandleTypeDef hspi1;
 uint16_t System_Status;
 
 							/*======= Register Read Variables =======*/
+
 float vRMS;
 float iRMS;
 float Freq;
@@ -76,6 +77,7 @@ uint16_t CS1 = 0;		// Implicite CheckSum1 Calculation
 uint16_t CS2 = 0;		// Implicite CheckSum2 Calculation
 
 								/*======= Function Variables for Debug =======*/
+
 uint8_t rx_buf[3] = {0};
 volatile char line2[30] = {0};
 volatile char line1[30] = {0};
@@ -105,35 +107,6 @@ const char *menuItems[] = {
 uint8_t updateDisplay = 1; // Start with 1 to draw the first time
 static uint32_t lastUpdate = 0;
 
-
-typedef struct
-{
-    GPIO_TypeDef *port;
-    uint16_t pin;
-} LED_t;
-
-LED_t leds[16] =
-{
-    {RLY1_GPIO_Port, RLY1_Pin},
-    {RLY2_GPIO_Port, RLY2_Pin},
-    {RLY3_GPIO_Port, RLY3_Pin},
-    {RLY4_GPIO_Port, RLY4_Pin},
-
-    {RLY5_GPIO_Port, RLY5_Pin},
-    {RLY6_GPIO_Port, RLY6_Pin},
-    {RLY7_GPIO_Port, RLY7_Pin},
-    {RLY8_GPIO_Port, RLY8_Pin},
-
-    {RLY9_GPIO_Port, RLY9_Pin},
-    {RLY10_GPIO_Port, RLY10_Pin},
-    {RLY11_GPIO_Port, RLY11_Pin},
-    {RLY12_GPIO_Port, RLY12_Pin},
-
-    {RLY13_GPIO_Port, RLY13_Pin},
-    {RLY14_GPIO_Port, RLY14_Pin},
-    {RLY16_GPIO_Port, RLY16_Pin},
-    {RLY15_GPIO_Port, RLY15_Pin}
-};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -187,17 +160,13 @@ int main(void)
   HAL_Delay(100);
   LCD_Init();
 
-//  LED_All_On();
-//  HAL_Delay(1000);
-//  LED_All_Off();
-//
-//  LCD_SetCursor(0,5);
-//  LCD_Print("Welcome,");
-//  LCD_SetCursor(1,2);
-//  LCD_Print("System Online!");
-//  LCD_SetCursor(2, 4);
-//  LCD_Print("~ ShineArc Tech!");
-//  HAL_Delay(2000);
+ LCD_SetCursor(0,5);
+ LCD_Print("Welcome,");
+ LCD_SetCursor(1,2);
+ LCD_Print("System Online!");
+ LCD_SetCursor(2, 4);
+ LCD_Print("~ Vaishnav");
+ HAL_Delay(2000);
   LCD_Clear();
   currentState = STATE_MENU;
 
@@ -209,8 +178,6 @@ int main(void)
 
   x = 0x00; // Start with the first bit set (Line 0)
   updateDisplay = 1;
-  // 1. Read registers
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -488,40 +455,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void LED_All_On(void)
-{
-    for (uint8_t i = 0; i < 16; i++)
-    {
-        HAL_GPIO_WritePin(leds[i].port, leds[i].pin, GPIO_PIN_SET);
-    }
-}
-void LED_All_Off(void)
-{
-    for (uint8_t i = 0; i < 16; i++)
-    {
-        HAL_GPIO_WritePin(leds[i].port, leds[i].pin, GPIO_PIN_RESET);
-    }
-}
-void LED_All_Toggle(void)
-{
-    for (uint8_t i = 1; i <= 16; i++)
-    {
-    	HAL_GPIO_WritePin(leds[i].port, leds[i].pin,SET);
-    	HAL_Delay(100);
-        HAL_GPIO_WritePin(leds[i-1].port, leds[i-1].pin,RESET);
-        HAL_Delay(100);
-    }
-}
-void LED_All_Toggle_Rev(void)
-{
-    for (int8_t i = 16; i >= 1; i--)
-    {
-    	HAL_GPIO_WritePin(leds[i].port, leds[i].pin,SET);
-    	HAL_Delay(100);
-    	HAL_GPIO_WritePin(leds[i-1].port, leds[i-1].pin,RESET);
-    	HAL_Delay(100);
-    }
-}
+
 /* USER CODE END 4 */
 
  /* MPU Configuration */
