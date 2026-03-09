@@ -53,15 +53,21 @@ uint16_t System_Status;
 
 							/*======= Register Read Variables =======*/
 float vRMS;
-float  iRMS;
+float iRMS;
 float Freq;
 float Apparent_Power;
+float Aprt_Pwr;
+uint16_t rawPF;
 uint16_t  lPF;
 float Reactive_Power;
+float Ract_Pwr;
 float Active_Power;
+float Act_Pwr;
 int16_t Phase_Angle;
 float signedPF;
 char line[32];
+float scaling_factor;
+
 									/*======= Checksum Variables =======*/
 
 uint16_t cs1 = 0;		// Explicite CheckSum1 Calculation
@@ -76,8 +82,8 @@ volatile char line1[30] = {0};
 
 								/*======= Checksum Calculation Arrays =======*/
 
-uint16_t meteringBlock[11] = {0x0015, 0xD174, 0x1D39, 0x0000, 0x0000, 0x0000, 0x08BD, 0x0000, 0x0AEC, 0x0000, 0x9422};
-uint16_t measurementBlock[10] = {0x6720, 0x7A13, 0x7530, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
+uint16_t meteringBlock[11] = {PLconstH, PLconstL, Lgain, 0x0000, 0x0000, 0x0000, 0x08BD, 0x0000, 0x0AEC, 0x0000, 0x9422};
+uint16_t measurementBlock[10] = {0x6720, IgainL, 0x7530, 0x0000, IoffsetL, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
 
 								/* ===== Keypad Variables ===== */
 typedef enum {
@@ -99,6 +105,35 @@ const char *menuItems[] = {
 uint8_t updateDisplay = 1; // Start with 1 to draw the first time
 static uint32_t lastUpdate = 0;
 
+
+typedef struct
+{
+    GPIO_TypeDef *port;
+    uint16_t pin;
+} LED_t;
+
+LED_t leds[16] =
+{
+    {RLY1_GPIO_Port, RLY1_Pin},
+    {RLY2_GPIO_Port, RLY2_Pin},
+    {RLY3_GPIO_Port, RLY3_Pin},
+    {RLY4_GPIO_Port, RLY4_Pin},
+
+    {RLY5_GPIO_Port, RLY5_Pin},
+    {RLY6_GPIO_Port, RLY6_Pin},
+    {RLY7_GPIO_Port, RLY7_Pin},
+    {RLY8_GPIO_Port, RLY8_Pin},
+
+    {RLY9_GPIO_Port, RLY9_Pin},
+    {RLY10_GPIO_Port, RLY10_Pin},
+    {RLY11_GPIO_Port, RLY11_Pin},
+    {RLY12_GPIO_Port, RLY12_Pin},
+
+    {RLY13_GPIO_Port, RLY13_Pin},
+    {RLY14_GPIO_Port, RLY14_Pin},
+    {RLY16_GPIO_Port, RLY16_Pin},
+    {RLY15_GPIO_Port, RLY15_Pin}
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -149,19 +184,20 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_Delay(1000);
-  LCD_Init();
   HAL_Delay(100);
-//  LCD_Init();
-//  LCD_Clear();
+  LCD_Init();
 
-  LCD_SetCursor(0,5);
-  LCD_Print("Welcome,");
-  LCD_SetCursor(1,2);
-  LCD_Print("System Online!");
-  LCD_SetCursor(2, 4);
-  LCD_Print("~ ShineArc Tech!");
-  HAL_Delay(2000);
+//  LED_All_On();
+//  HAL_Delay(1000);
+//  LED_All_Off();
+//
+//  LCD_SetCursor(0,5);
+//  LCD_Print("Welcome,");
+//  LCD_SetCursor(1,2);
+//  LCD_Print("System Online!");
+//  LCD_SetCursor(2, 4);
+//  LCD_Print("~ ShineArc Tech!");
+//  HAL_Delay(2000);
   LCD_Clear();
   currentState = STATE_MENU;
 
@@ -172,7 +208,7 @@ int main(void)
   ATM90E26_Mesurement_Enable();
 
   x = 0x00; // Start with the first bit set (Line 0)
-    updateDisplay = 1;
+  updateDisplay = 1;
   // 1. Read registers
 
   /* USER CODE END 2 */
@@ -183,12 +219,11 @@ int main(void)
   {
 	  //HAL_Delay(1000);
 	  ATM90_Get_Values();
-	  /* ============= 20x4 LCD & Keypad Section Starts ============= */
 
 	  if(currentState == STATE_MENU) {
 
 		          if (updateDisplay == 1) {
-		        	  LCD_SendCommand(0x0F);		// Command: Display ON, Cursor ON, Blink ON
+		        	  LCD_SendCommand(0x0F);		// Command: Display ON, Cursor ON, Blinking ON
 		              Display_20x4_Menu();
 
 		              LCD_SetCursor(cursorLine, 0);
@@ -230,8 +265,9 @@ int main(void)
 		        LCD_Clear();
 		    }
 
-	        /* ======== 3. DISPLAY LIVE VARIABLES ======= */
-	        	  LCD_SendCommand(0x0C); // Display ON, Cursor OFF
+	        /* ======= 3. DISPLAY LIVE VALUES ======= */
+
+	        	  LCD_SendCommand(0x0C); // Blinking OFF in live Data
 		          if (HAL_GetTick() - lastUpdate > 500) {
 		              Display_Live_Values(cursorLine);
 		              lastUpdate = HAL_GetTick();
@@ -370,20 +406,41 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, Led_Pin|D7_Pin|D4_Pin|D5_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, RLY1_Pin|RLY2_Pin|RLY3_Pin|RLY4_Pin
+                          |RLY9_Pin|RLY10_Pin|D7_Pin|D4_Pin
+                          |D5_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SPI_CS_Pin|D6_Pin|EN_Pin|RS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, RLY5_Pin|RLY6_Pin|RLY7_Pin|RLY8_Pin
+                          |SPI_CS_Pin|D6_Pin|EN_Pin|RS_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : Led_Pin D7_Pin D4_Pin D5_Pin */
-  GPIO_InitStruct.Pin = Led_Pin|D7_Pin|D4_Pin|D5_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, RLY11_Pin|RLY12_Pin|RLY13_Pin|RLY14_Pin
+                          |RLY15_Pin|RLY16_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : RLY1_Pin RLY2_Pin RLY3_Pin RLY4_Pin
+                           RLY9_Pin RLY10_Pin D7_Pin D4_Pin
+                           D5_Pin */
+  GPIO_InitStruct.Pin = RLY1_Pin|RLY2_Pin|RLY3_Pin|RLY4_Pin
+                          |RLY9_Pin|RLY10_Pin|D7_Pin|D4_Pin
+                          |D5_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RLY5_Pin RLY6_Pin RLY7_Pin RLY8_Pin
+                           D6_Pin EN_Pin RS_Pin */
+  GPIO_InitStruct.Pin = RLY5_Pin|RLY6_Pin|RLY7_Pin|RLY8_Pin
+                          |D6_Pin|EN_Pin|RS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SPI_CS_Pin */
   GPIO_InitStruct.Pin = SPI_CS_Pin;
@@ -392,12 +449,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(SPI_CS_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : D6_Pin EN_Pin RS_Pin */
-  GPIO_InitStruct.Pin = D6_Pin|EN_Pin|RS_Pin;
+  /*Configure GPIO pins : RLY11_Pin RLY12_Pin RLY13_Pin RLY14_Pin
+                           RLY15_Pin RLY16_Pin */
+  GPIO_InitStruct.Pin = RLY11_Pin|RLY12_Pin|RLY13_Pin|RLY14_Pin
+                          |RLY15_Pin|RLY16_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DOWN_Pin ENTER_Pin ESC_Pin */
   GPIO_InitStruct.Pin = DOWN_Pin|ENTER_Pin|ESC_Pin;
@@ -411,13 +470,58 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(UP_GPIO_Port, &GPIO_InitStruct);
 
+  /*AnalogSwitch Config */
+  HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC2, SYSCFG_SWITCH_PC2_CLOSE);
+
+  /*AnalogSwitch Config */
+  HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC3, SYSCFG_SWITCH_PC3_CLOSE);
+
+  /*AnalogSwitch Config */
+  HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA0, SYSCFG_SWITCH_PA0_CLOSE);
+
+  /*AnalogSwitch Config */
+  HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PA1, SYSCFG_SWITCH_PA1_CLOSE);
+
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-
+void LED_All_On(void)
+{
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        HAL_GPIO_WritePin(leds[i].port, leds[i].pin, GPIO_PIN_SET);
+    }
+}
+void LED_All_Off(void)
+{
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        HAL_GPIO_WritePin(leds[i].port, leds[i].pin, GPIO_PIN_RESET);
+    }
+}
+void LED_All_Toggle(void)
+{
+    for (uint8_t i = 1; i <= 16; i++)
+    {
+    	HAL_GPIO_WritePin(leds[i].port, leds[i].pin,SET);
+    	HAL_Delay(100);
+        HAL_GPIO_WritePin(leds[i-1].port, leds[i-1].pin,RESET);
+        HAL_Delay(100);
+    }
+}
+void LED_All_Toggle_Rev(void)
+{
+    for (int8_t i = 16; i >= 1; i--)
+    {
+    	HAL_GPIO_WritePin(leds[i].port, leds[i].pin,SET);
+    	HAL_Delay(100);
+    	HAL_GPIO_WritePin(leds[i-1].port, leds[i-1].pin,RESET);
+    	HAL_Delay(100);
+    }
+}
 /* USER CODE END 4 */
 
  /* MPU Configuration */

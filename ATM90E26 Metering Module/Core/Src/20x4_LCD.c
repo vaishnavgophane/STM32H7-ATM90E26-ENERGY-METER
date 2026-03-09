@@ -129,8 +129,8 @@ void Display_Live_Values(int selection) {
 
         case 2: // Power Angle & Apparent
             // Calculated Apparent Power (S = V*I)
-            sprintf(buf, "S: %.2f VA", Apparent_Power); LCD_SetCursor(0,0); LCD_Print(buf);
-            sprintf(buf, "Angle: %.1d Deg", Phase_Angle);  LCD_SetCursor(1,0); LCD_Print(buf);
+            sprintf(buf, "S: %.2f W", Apparent_Power); LCD_SetCursor(0,0); LCD_Print(buf);
+            sprintf(buf, "Angle: %d \xDF""C", Phase_Angle);  LCD_SetCursor(1,0); LCD_Print(buf);
             break;
 
         case 3: // Active/Reactive Power

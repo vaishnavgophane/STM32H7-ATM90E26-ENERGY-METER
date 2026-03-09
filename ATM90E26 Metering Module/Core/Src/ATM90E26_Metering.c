@@ -13,21 +13,28 @@
 #include <string.h>
 extern SPI_HandleTypeDef hspi1;
 
+//#define IgainL 0x031F // L Line Current rms Gain
+
 		/* ======= System Error Indicating Variable =========== */
 extern uint16_t System_Status;
 
 		/* ======= Register Read Variables =========== */
 
 extern float vRMS;
-extern float  iRMS;
+extern float iRMS;
 extern float Freq;
 extern float Apparent_Power;
+extern uint16_t rawPF;
+extern float Aprt_Pwr;
+extern float Ract_Pwr;
+extern float Act_Pwr;
 extern uint16_t lPF;
 extern float Reactive_Power;
 extern float Active_Power;
 extern float  signedPF;
 extern int16_t Phase_Angle;
 extern char line[32];
+extern float scaling_factor;
 
 		/* ========= Checksum Variables ========= */
 
@@ -49,14 +56,19 @@ extern uint16_t measurementBlock[10];
 
 
 void ATM90_Get_Values(void) {
-	  vRMS = ATM90_ReadReg(0x49)/ 100.0f;
+
+	  vRMS = ATM90_ReadReg(0x49) / 100;
+
 // 1. Vrms
-	  vRMS = (float)ATM90_ReadReg(0x49)/ 100.0f;// The concept on repeted reading is to tackel the value refresh error.(650,0,0,0,0.....)
+	  vRMS = (float)ATM90_ReadReg(0x49) / 100;// The concept on repeted reading is to tackel the value refresh error.(650,0,0,0,0.....)
 
 // 2. Irms
-	  iRMS = (float)ATM90_ReadReg(0x48) / 260.0f;
+	  iRMS = (float)ATM90_ReadReg(0x48) / 100;// 204.0f;// 001.0f; // 207.0f;
+
 // 3. Power Factor
 	  lPF = (float)ATM90_ReadReg(0x4D);
+	  rawPF = lPF;
+
 	  //  Check the Sign Bit (Bit 15)
 	  if (lPF & 0x8000) {
 	  // If Bit 15 is 1, the value is negative (Leading/Capacitive)
@@ -75,18 +87,23 @@ void ATM90_Get_Values(void) {
 	  Freq = (float)ATM90_ReadReg(0x4C)/100;
 
 // 5. Aparent Power (S) : Unit - Volts Ampear(VA)
+	  Aprt_Pwr = vRMS*iRMS;
+
 	  Apparent_Power = (float)ATM90_ReadReg(0x4F);
+	  // Scaling factor =  Vrms* Irms / ATM90_ReadReg(0x0F);
+	  scaling_factor = Aprt_Pwr/Apparent_Power;
+
+	  Apparent_Power = (float)ATM90_ReadReg(0x4F)*scaling_factor;
 
 // 6. Active Power (P) : Unit - Watt (W)
-	  Active_Power = (float)ATM90_ReadReg(0x4A) * 1.0f;
-
+	  Act_Pwr = (float)((int16_t)ATM90_ReadReg(0x4A));
+	  Active_Power = (float)Act_Pwr * scaling_factor;
 // 7. Reactive Power (Q) : Unit - VAR
-	  Reactive_Power = (float)ATM90_ReadReg(0x4B);
-
+	  Ract_Pwr = (float)((int16_t)ATM90_ReadReg(0x4B));
+	  Reactive_Power = (float) Ract_Pwr * scaling_factor;
 // 8. Phase angle
-	  Phase_Angle = (float)ATM90_ReadReg(0x4E)/100;
-	  HAL_Delay(1);
-	  Phase_Angle = (float)ATM90_ReadReg(0x4E)/100;
+	  Phase_Angle = (float)ATM90_ReadReg(0x4E)/1000.0f;
+
 	  System_Status = ATM90_ReadReg(0x01); // Represents '0' if no errors in system or Checksum's
 }
 uint16_t CalculateChecksum(uint16_t *regs, int length) {
@@ -160,12 +177,12 @@ void ATM90E26_Metering_Enable(void)
 	  WriteReg(0x20, 0x5678);	// CalStart Unlocks Metering Registers
 
 	  /* Setting the pulse constant. Even for raw values, the chip needs a timebase to integrate power into energy. */
-	  WriteReg(0x21, 0x0015);	// PL_constH [ Default Value ]
+	  WriteReg(0x21, PLconstH);	// PL_constH
 
-	  WriteReg(0x22, 0xD174);	// PL_constL [Default Value ]
+	  WriteReg(0x22, PLconstL);	// PL_constL [Default Value ]
 
 	  /* Sets the fundamental gain for the Line current channels. */
-	  WriteReg(0x23, 0x1D39);	//  L Line Calibration Gain [ Default Value ]
+	  WriteReg(0x23, Lgain);	//  L Line Calibration Gain [ Default Value ]
 
 	  /* Sets phase compensation. For raw readings, keeping this at zero ensures no phase shifting is applied. */
 	  WriteReg(0x24, 0x0000);	//  N Line Gain Angle [ Default Value ]
@@ -210,13 +227,13 @@ void ATM90E26_Mesurement_Enable(void)
 
 	  WriteReg(0x31, 0x6720);		// Voltage rms Gain
 
-	  WriteReg(0x32, 0x7A13);		// L Line Current rms Gain
+	  WriteReg(0x32, IgainL);		// L Line Current rms Gain
 
 	  WriteReg(0x33, 0x7530);		// N Line Current rms Gain [ Default Value ]
 
 	  WriteReg(0x34, 0x0000);		// Voltage Offset [ Default Value ]
 
-	  WriteReg(0x35, 0x0000);		// L Line Current Offset [ Default Value ]
+	  WriteReg(0x35, IoffsetL);		// L Line Current Offset [ Default Value ]
 
 	  WriteReg(0x36, 0x0000);		// N Line Current Offset [ Default Value ]
 
