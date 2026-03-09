@@ -13,9 +13,8 @@
 #include <string.h>
 extern SPI_HandleTypeDef hspi1;
 
-//#define IgainL 0x031F // L Line Current rms Gain
-
 		/* ======= System Error Indicating Variable =========== */
+
 extern uint16_t System_Status;
 
 		/* ======= Register Read Variables =========== */
